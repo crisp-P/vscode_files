@@ -1,0 +1,16 @@
+{
+    "makefile.makePath": "C:\\Users\\darkm\\AppData\\Local\\Microsoft\\WinGet\\Packages\\ezwinports.make_Microsoft.Winget.Source_8wekyb3d8bbwe\\bin",
+    "makefile.launchConfigurations": [
+        {
+            "cwd": "c:\\Users\\darkm\\projects\\vscode_files\\my_mastermind",
+            "binaryPath": "c:\\Users\\darkm\\projects\\vscode_files\\my_mastermind\\masterboy",
+            "binaryArgs": []
+        }
+    ],
+    "makefile.makefilePath": "C:\\Users\\darkm\\projects\\vscode_files\\my_mastermind",
+    "files.associations": {
+        "stdlib.h": "c",
+        "array": "c",
+        "mastermind.h": "c"
+    }
+}
