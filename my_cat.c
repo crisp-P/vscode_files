@@ -17,6 +17,7 @@ int main(int ac, char **av) {
 
     
     fclose(file_pointer_read);
+    printf("\n");
     return 0;
 }
 /*
