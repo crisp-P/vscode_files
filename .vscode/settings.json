@@ -11,6 +11,11 @@
     "files.associations": {
         "stdlib.h": "c",
         "array": "c",
-        "mastermind.h": "c"
+        "mastermind.h": "c",
+        "string_view": "c",
+        "format": "c",
+        "initializer_list": "c",
+        "span": "c",
+        "system_error": "c"
     }
 }
