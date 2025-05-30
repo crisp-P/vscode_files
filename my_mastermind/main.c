@@ -29,7 +29,7 @@ int main(int ac, char **av) {
             return 1;
         }
         while(valid_user_input(user_input, size) == false) {//valid user grabs what was read from stdin user_input thats why we need to also pass size so we dont read random data only what was inputed by user.
-
+            printf("please put the right input\n");
             if(get_user_input(user_input, &size) == -1) {
                 return 1;
             }
