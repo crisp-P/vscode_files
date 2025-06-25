@@ -626,7 +626,7 @@ int percent_s(char *string){
     return return_size;
 }
 
-//soo this was a rushed job also it only accounts for 64 bit computers sooooooooooo ye. if this ran on linux it prob wouldnt work soooo ye. need fix later
+//soo this was a rushed job still janky but it looks better? i think.
 //int32_t, uint64_t look into later.
 int percent_p(void *pointer) {
     int hex = 16;
