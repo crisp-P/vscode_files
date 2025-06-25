@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 typedef struct s_flags {
 
@@ -141,7 +142,7 @@ int main(int ac, char **av) {
     check = my_printf("abc%dadcbe%#+ 4.5dabdc%-4dabcd%1.3da%-1.1daoctal%5.7uahexical%-#9Xabc%c12a%s123\n", 0, -98, 987, 87, 876, 12345, 11111, 'a', "hi");
     printf("%.0d\n", check);
     check = my_printf("final results for pointer = %p\n", pointer);
-    printf("%d\n", check);
+    printf("%d\n", sizeof(int64_t));
     return 0;
 }
 //thing i need to work on lets get %d with flags working here hoping it works with other parameters later.
@@ -626,10 +627,11 @@ int percent_s(char *string){
 }
 
 //soo this was a rushed job also it only accounts for 64 bit computers sooooooooooo ye. if this ran on linux it prob wouldnt work soooo ye. need fix later
+//int32_t, uint64_t look into later.
 int percent_p(void *pointer) {
     int hex = 16;
-    long long int temp = (long long int)pointer;//these typecasts are just janky way to convert this to a integer idk if i even need to do that tho.
-    long long int pointer_int = (long long int)pointer;
+    int64_t temp = (int64_t)pointer;//these typecasts are just janky way to convert this to a integer idk if i even need to do that
+    int64_t pointer_int = (int64_t)pointer;
     int number_size = 0;
     unsigned int *hex_print;
     int return_size = 0;
@@ -650,7 +652,7 @@ int percent_p(void *pointer) {
             pointer_int = pointer_int / hex;
         }
     }
-    for(int i = 15; i >= 0; i--){
+    for(int i = (sizeof(int64_t) * 2) - 1; i >= 0; i--){
         if(i >= number_size) {
             print_char('0');
             return_size++;
