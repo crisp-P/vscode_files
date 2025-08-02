@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <math.h>
 
 typedef struct s_flags {
 
@@ -34,6 +35,7 @@ int print_int_array(int *number_array, int array_size);
 int print_integers(long long int number);
 int convert_char_to_num(const char *string);
 void if_negative_make_zero(s_length *length, int number_size);
+int finding_number_double(double number);
 int my_printf(const char *string, ...);
 void flag_checker(const char *string, char conversion, s_flags *flags);
 int perameters(const char *string, int *characters_printed, va_list *vector_list);
@@ -47,6 +49,11 @@ int percent_x_X(char type, s_flags *flags, s_length *length, unsigned int intege
 int percent_c(char c);
 int percent_s(char *string);
 int percent_p(void *pointer);
+int percent_f(char check_percent, s_length *length, s_flags *flags, double number);
+int percent_e(char check_percent, s_length *length, s_flags *flags, double a_float);
+int percent_g(char check_percent, s_length *length, s_flags *flags, double a_float);
+//int test_double();
+//double rounding(double number);
 
 
 //i threw all my general funcitons that im using on top of the stack because these are functions that are going to 
@@ -132,25 +139,37 @@ void if_negative_make_zero(s_length *length, int number_size) {
     }
 }
 
-int main(int ac, char **av) {
-    void *pointer;
-    int check = printf("%p\n", (void*)pointer);
-    printf("%llu\n", pointer);
-    printf("%lld\n", pointer);
-    printf("%#llX\n", pointer);
+int finding_number_double(double number) {
+    //printf("the number that came back == %f", number);
+    for(int i = 0; i < 10; i++) {
+        //printf("number - i == %f\n", number - i);
+        if(number - i == 0) {
+            //printf("number returned == %d\n", i);
+            return i;
+        }
+    }
+
+    return 0;
+}
+
+int main() {
+    int check = 0;
+    void *pointer = &check;
+    printf("%.5g\n", 123.123);
+    //test_double();
+    //printf("%lld\n", pointer);
+    //printf("%#llX\n", pointer);
     printf("%d\n",check);
-    check = my_printf("abc%dadcbe%#+ 4.5dabdc%-4dabcd%1.3da%-1.1daoctal%5.7uahexical%-#9Xabc%c12a%s123\n", 0, -98, 987, 87, 876, 12345, 11111, 'a', "hi");
+    check = my_printf("abc%dadcbe%#+ 4.5dabdc%-4dabcd%1.3da%-1.1daoctal%5.7uahexical%-#9Xabc%c12a%s123abcab%.4f\n", 0, -98, 987, 87, 876, 12345, 11111, 'a', "hi", -650056.12346);
     printf("%.0d\n", check);
     check = my_printf("final results for pointer = %p\n", pointer);
-    printf("%d\n", sizeof(int64_t));
+    printf("%lld\n", sizeof(int64_t));
     return 0;
 }
 //thing i need to work on lets get %d with flags working here hoping it works with other parameters later.
 int my_printf(const char *string, ...) {
 
     va_list vector_list;
-    int delete_later = 0;
-    int argments_passed = 0;
     int characters_printed  = 0;
     va_start(vector_list, string);
 
@@ -196,7 +215,7 @@ void flag_checker(const char *string, char conversion, s_flags *flags) {//all th
             flags->space = true;
         }
         if(string[i] == '.' && string[i + 1] == '0') {
-            flags->blank == true;
+            flags->blank = true;
         }
     }
     //printf("neg == %d hashtag == %d pos == %d space == %d zero == %d\n", flags->negitive, flags->hashtag, 
@@ -224,7 +243,7 @@ int perameters(const char *string,int *characters_printed, va_list *vector_list)
     for(i; string[i] != '\0'; i++) {// this for loop started just checking the letter to confirm what conversion we 
     //doing but i use it atm to find end of conversion with the start being giving for string[0] also using it to 
     //fill out values for length struct.
-        if(string[i] >= 'A' && string[i] <= 'Z' || string[i] >= 'a' && string[i] <= 'z') {
+        if((string[i] >= 'A' && string[i] <= 'Z') || (string[i] >= 'a' && string[i] <= 'z')) {
             break;
         }
         if(string[i] == '%') {
@@ -261,16 +280,21 @@ int perameters(const char *string,int *characters_printed, va_list *vector_list)
         *characters_printed = *characters_printed + percent_c(va_arg(*vector_list, int));
         return i;
     }
-    if(string[i] == 's'){
+    if(string[i] == 's') {
         *characters_printed = *characters_printed + percent_s(va_arg(*vector_list, char*));
     }
-    if(string[i] == 'p'){
+    if(string[i] == 'p') {
         *characters_printed = *characters_printed + percent_p(va_arg(*vector_list, void*));
     }
     if(string[i] == '%') {
-        print_char(string['%']);
-        *characters_printed++;
-        return i;
+        print_char('%');
+        *characters_printed = *characters_printed + 1;
+    }
+    if(string[i] == 'f') {
+        *characters_printed = *characters_printed + percent_f(string[i] , &length, &flags, va_arg(*vector_list, double));
+    }
+    if(string[i] == 'e' || string[i] == 'E') {
+        *characters_printed = *characters_printed + percent_e(string[i], &length, &flags, va_arg(*vector_list, double));
     }
 
     return i;
@@ -447,9 +471,8 @@ int field_integer(s_length *length, s_flags *flags, s_vector_number *a_integer) 
 int percent_0_u(char type, s_flags *flags, s_length *length, unsigned int integer){
     int return_size = 0;
     //int power_ten = 1;
-     int test = (int)integer;
-    int number_size = 0;
-    s_vector_number a_integer  = {a_integer.p_integer = &integer,
+    int test = (int)integer;
+    s_vector_number a_integer  = {a_integer.p_integer = &test,
                                   a_integer.array_size = 0,
                                   a_integer.number_size = 0
     };
@@ -498,7 +521,7 @@ int percent_0_u(char type, s_flags *flags, s_length *length, unsigned int intege
 void precent_o(s_vector_number *a_integer, s_flags *flags) {
 
     unsigned temp = *a_integer->p_integer;
-    unsigned int converted_to_octal = 0;
+    //unsigned int converted_to_octal = 0;
     unsigned int octal = 8;
 
     for(a_integer->array_size; temp > 0; a_integer->array_size++) {
@@ -517,8 +540,8 @@ void precent_o(s_vector_number *a_integer, s_flags *flags) {
             array[0] = '0';
             flags->hashtag = false;
         }
-        array[i] = (*a_integer->p_integer % 8) + '0';
-        *a_integer->p_integer = *a_integer->p_integer / 8;
+        array[i] = (*a_integer->p_integer % octal) + '0';
+        *a_integer->p_integer = *a_integer->p_integer / octal;
         //74 - 8 give remainder 2;
         //temp = 9 % 8 = 1
         //74/8 = 9%8 = 1
@@ -532,10 +555,9 @@ void precent_o(s_vector_number *a_integer, s_flags *flags) {
 }
 
 int percent_x_X(char type, s_flags *flags, s_length *length, unsigned int integer) {
-    unsigned int hex = 16;
+    int hex = 16;
     unsigned int temp = integer;
-    unsigned int number_size = 0;
-    unsigned int *hex_print;
+    int *hex_print;
     int return_size = 0;
 
     s_vector_number a_integer  = {a_integer.p_integer = NULL,
@@ -552,7 +574,7 @@ int percent_x_X(char type, s_flags *flags, s_length *length, unsigned int intege
     }
     //printf("size == %d, %d end||", a_integer.array_size, a_integer.number_size);
 
-    hex_print = malloc(sizeof(unsigned int) * a_integer.array_size);
+    hex_print = malloc(sizeof(int) * a_integer.array_size);
 
 
     for(int i = a_integer.array_size - 1; integer != 0; i--) {
@@ -664,3 +686,278 @@ int percent_p(void *pointer) {
     free(hex_print);
     return return_size;
 }
+
+//another thing that needs to be done is i neeed to make this combatible with percent_g which requires deletion of all trailing 0's soo far my idea is that i use a for loop to see if reminding numbers are zero if so skip printing everything. maybe i use break command or something to break out the for loop. i could also use a while loop with condition of while bool is_number_done -- true and j <= last_digit do a thing if is_number_done still equals true break. this would need to be into a if with condition char c == g or G do a thing.
+int percent_f(char check_percent, s_length *length, s_flags *flags, double a_float) {
+    int return_size = 0;
+    int place_decimal = 0;
+    int precision = 6;
+    int last_digit = 0;
+    int this_number = 10;
+    int is_it_zero = 0;
+    bool fuck_me = false;// this was a check to see if i need to round the number in case of compilier error not being used atm.
+
+    //printf("flags blank == %d\n", flags->blank);
+    if(length->precision > 0 || flags->blank == true){
+        //printf("wrong = %d", length->precision - 1);
+        precision = length->precision;
+    }
+    if(a_float < 0) {
+        a_float = a_float * -1;
+        print_char('-');
+        return_size++;
+    }
+    //printf("%f\n", a_float);
+    if(a_float == 1.0){
+        print_char('1');
+        print_char('.');
+        for(int i = 0; i < 6; i++){
+            print_char('0');
+        }
+        return 8;
+    }
+    for(place_decimal = 0; a_float > 1; place_decimal++) {
+        a_float = a_float / 10;
+    }
+    last_digit = precision + place_decimal - 1;
+    //printf("last digit equals == %d\n", last_digit);
+    //printf("%f\n", a_float);
+    for(int j = 0; j <= last_digit; j++) {
+        if(j == place_decimal) {
+            if(j == 0) {
+                print_char('0');
+                print_char('.');
+                return_size++;
+            }else{
+                print_char('.');
+                return_size++;
+            }
+
+        }
+        //sooo i tried a few ways to grab the numbers from float but all gave me same problems soo this way most simple way to do it.
+        //also i have no idea how to grab anything pass decimal without using precision. to do it.
+        a_float = a_float * 10;
+        this_number = (int)a_float;
+
+        if(round(a_float) - .01 > a_float) {//this works but it doesnt cover anything less thing .01 which can be a issue i could do it as low as .001 but still the issue would be there i feel like .001 would be fine for now tho.
+            
+            if(j == last_digit) {
+                this_number = finding_number_double(round(a_float));
+            }
+
+            if(j >= place_decimal && (check_percent == 'g' || check_percent == 'G')) {
+                for(int k = j; (this_number == 0 && k <= last_digit); k++) {
+                    
+                }
+            }
+
+            print_char((this_number + 48));
+            a_float = a_float - this_number;  
+        }else{
+            this_number = finding_number_double(round(a_float));
+            print_char((this_number + 48));
+            a_float = a_float - this_number;
+        }
+        return_size++;
+    }
+    
+    return return_size;
+}
+//same as f.
+int percent_e(char check_percent, s_length *length, s_flags *flags, double a_float) {
+    int return_size = 0;
+    int precision = 6;
+    int expondent_value = 0;
+    int this_number = 10;
+
+    //printf("testing\n");
+    if(length->precision > 0 || flags->blank == true){
+        precision = length->precision;
+    }
+
+    for(expondent_value = 0; a_float < 1; expondent_value--){
+        a_float = a_float * 10;
+    }
+    for(expondent_value = 0; a_float > 10; expondent_value++){
+        a_float = a_float / 10;
+    }
+    if(a_float < 0) {
+        a_float = a_float * -1;
+        print_char('-');
+        return_size++;
+    }
+    //printf("expondent vaulue == %d\n", expondent_value);
+
+    int last_digit = precision;
+    for(int i = 0; i <= precision; i++) {
+        if(i == 1) {
+            print_char('.');
+            return_size++;
+        }
+        //printf("hi");
+        //print_integers((int)a_float);
+        a_float = a_float * 10;
+        this_number = (int)a_float;
+
+        if(round(a_float) - .01 > a_float) {
+            if(i == last_digit) {
+                this_number = finding_number_double(round(a_float));
+            }
+            print_char((this_number + 48));
+            a_float = a_float - this_number;
+        }else{
+            this_number = finding_number_double(round(a_float));
+            print_char((this_number + 48));
+            a_float = a_float - this_number;
+        }
+        return_size++;
+    }
+    //all these if statements are used for expondent print out e.g == (number)+e00 or (number)+E00.
+    //i want kind of want put this into its own function to seperate them for better readability.
+    if(check_percent == 'E'){
+        if(expondent_value < 10 && expondent_value > -10) {
+            return_size += print_char('E');
+            if(expondent_value > 0) {
+                print_char('+');
+            }else{
+                print_char('-');
+            }
+            return_size += print_char('0');
+            return_size += print_char(expondent_value + '0');
+        }else{
+            return_size += print_char('E');
+            if(expondent_value > 0) {
+                return_size += print_char('+');
+            }
+            return_size += print_integers(expondent_value);
+        }
+    }else{
+        if(expondent_value < 10 && expondent_value > -10) {
+            return_size += print_char('e');
+            if(expondent_value > 0) {
+                return_size += print_char('+');
+            }else{
+                return_size += print_char('-');
+            }
+            return_size += print_char('0');
+            return_size += print_char(expondent_value + '0');
+        }else{
+            return_size += print_char('e');
+            if(expondent_value > 0) {
+                return_size += print_char('+');
+            }
+            return_size += print_integers(expondent_value);
+        }
+    }
+
+    return return_size;
+}
+
+int percent_g(char check_percent, s_length *length, s_flags *flags, double a_float){
+    int return_size = 0;
+
+
+    return return_size;
+}
+
+// double rounding(double number) {
+//     int i = 0;
+//     int j = 0;
+//     bool round_up = false;
+//     for(i = 0; i < 3; i++) {
+//         number = number * 10;
+//     }
+//     for(j = 0; (int)number % 10 == 5; j++) {
+//         number = number * 10;
+//     }
+//     if((int)number % 10 > 5 && j == 0){
+//         number++;
+//     }else if((int)number % 10 > 5) {
+//         round_up = true;
+//     }
+//     for(i = j + i; i >= 0; i--, j--) {
+//         if(j == 0 && round_up == true) {
+//             number++;
+//         }
+//         number = number / 10;
+//     }
+
+//     return number;
+// }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// int test_double() {
+//     double a_number = 123.123;
+//     double another_number;
+//     int persion = 6;
+//     int i = 0;
+//     int j = 0;
+//     for(i; a_number > 1; i++) {
+//         //printf("%d\n", (long long int)a_number % 10);
+//         a_number = a_number / 10;
+//         //printf("%f\n", );
+//     }
+//     printf("%f , %d\n", a_number, i);
+//     another_number = a_number;
+//     for(j = 0; j < persion; j++) {
+//         a_number = a_number * 10;
+//         if(j == i){
+//             if(j == 0){
+//                 print_char('0');
+//                 print_char('.');
+//             }else{
+//                 print_char('.');
+//             }
+
+//         }
+//         print_char((int)a_number + 48);
+//         //printf("%d\n", (int)a_number);
+//         a_number = a_number - (int)a_number;
+//     }
+//     print_char('\n');
+//     for(j = 0; j < persion; j++){
+//         if(i == 0){
+//             print_char('0');
+//         }
+//         if(j == 1) {
+//             print_char('.');
+//         }
+//         another_number = another_number * 10;
+//         print_char((int)another_number + 48);
+//         another_number = another_number - (int)another_number;
+//     }
+//     if(true){
+//         print_char('e');
+//         if(i < 10){
+//             i--;
+//             print_char('0');
+//             print_char(i+48);
+//         }
+//     }else if(false){
+//         print_char('E');
+//         if(i < 10){
+//             i--;
+//             print_char('0');
+//             print_char(i+48);
+//         }
+//     }
+//     print_char('\n');
+//     //printf("%f , %d\n", a_number, j);
+//     printf("%d\n", sizeof(double));
+//     return 0;
+// }
