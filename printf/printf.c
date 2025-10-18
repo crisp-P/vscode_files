@@ -26,9 +26,11 @@ typedef struct s_length {
 
 typedef struct s_vector_number {
     int *p_integer;
+    unsigned int *p_unsigned_integer;
     int number_size;
     int array_size;
 }s_vector_number;
+
 
 int print_char(char c);
 int print_int_array(int *number_array, int array_size);
@@ -36,19 +38,22 @@ int print_integers(long long int number);
 int convert_char_to_num(const char *string);
 void if_negative_make_zero(s_length *length, int number_size);
 int finding_number_double(double number);
+bool checking_all_zeros(double a_double, int last_digit, int this_number, int starting_point);
 int my_printf(const char *string, ...);
 void flag_checker(const char *string, char conversion, s_flags *flags);
 int perameters(const char *string, int *characters_printed, va_list *vector_list);
 int percent_d(s_flags *flags, s_length *length, int integer);
-int field_precision_integer (s_length *length, s_flags *flags, s_vector_number *a_integer);
-int precision_integer(s_length *length, s_vector_number *a_integer);
-int field_integer(s_length *length, s_flags *flags, s_vector_number *a_integer);
+int field_precision_integer (s_length *length, s_flags *flags, s_vector_number *a_integer, char type);
+int precision_integer(s_length *length, s_vector_number *a_integer, char type);
+int field_integer(s_length *length, s_flags *flags, s_vector_number *a_integer, char type);
 int percent_0_u(char type, s_flags *flags, s_length *length, unsigned int integer);
-void precent_o(s_vector_number *a_integer, s_flags *flags);
+void precent_o(unsigned int integer, s_vector_number *a_integer, s_flags *flags);
 int percent_x_X(char type, s_flags *flags, s_length *length, unsigned int integer);
 int percent_c(char c);
 int percent_s(char *string);
 int percent_p(void *pointer);
+int permament_rounding(double a_float, int last_digit, char check_percent);
+int print_float(double a_float, char check_percent, int precision, int place_decimal, int last_digit);
 int percent_f(char check_percent, s_length *length, s_flags *flags, double number);
 int percent_e(char check_percent, s_length *length, s_flags *flags, double a_float);
 int percent_g(char check_percent, s_length *length, s_flags *flags, double a_float);
@@ -152,15 +157,33 @@ int finding_number_double(double number) {
     return 0;
 }
 
+bool checking_all_zeros(double a_float, int last_digit, int this_number, int starting_point){
+    
+    //printf("\n%f %d %d %d\n", a_double, last_digit, this_number, starting_point);     
+    
+    for(int k = starting_point; k <= last_digit; k++) {
+
+        //printf("this number == %d\n", this_number);
+        if(this_number > 0) {
+            return false;
+        }
+        a_float = a_float * 10;
+        this_number = (int)a_float;
+    }
+
+    return true;
+}
+
 int main() {
     int check = 0;
     void *pointer = &check;
-    printf("%.5g\n", 123.123);
+    printf("%g\n", 8934.923456);
     //test_double();
     //printf("%lld\n", pointer);
     //printf("%#llX\n", pointer);
-    printf("%d\n",check);
-    check = my_printf("abc%dadcbe%#+ 4.5dabdc%-4dabcd%1.3da%-1.1daoctal%5.7uahexical%-#9Xabc%c12a%s123abcab%.4f\n", 0, -98, 987, 87, 876, 12345, 11111, 'a', "hi", -650056.12346);
+    check = printf("one == %.4a two == %.4a three == %.4a four == %.4a five == %.4a six == %.4a\n", -2.0, 4.0, 6.0, 8.0, 10.0, 12.0);
+    printf("%.0d\n", check);
+    check = my_printf("abc%dadcbe%#+ 4.5dabdc%-4dabcd%1.3da%-1.1daoctal%5.7uahexical%-#9Xabc%c12a%s123abcab%gomg finally == %a\n", 0, -98, 987, 87, 876, 12345, 11111, 'a', "hi", 8934.923456, 100.0);
     printf("%.0d\n", check);
     check = my_printf("final results for pointer = %p\n", pointer);
     printf("%lld\n", sizeof(int64_t));
@@ -296,6 +319,9 @@ int perameters(const char *string,int *characters_printed, va_list *vector_list)
     if(string[i] == 'e' || string[i] == 'E') {
         *characters_printed = *characters_printed + percent_e(string[i], &length, &flags, va_arg(*vector_list, double));
     }
+    if(string[i] == 'g' || string[i] == 'G') {
+        *characters_printed = *characters_printed + percent_g(string[i], &length, &flags, va_arg(*vector_list, double));
+    }
 
     return i;
 }
@@ -305,6 +331,7 @@ int percent_d(s_flags *flags, s_length *length, int integer) {
     int return_size = 0;
     int power_ten = 1;
     s_vector_number a_integer  = {a_integer.p_integer = &integer,
+                                  a_integer.p_unsigned_integer = NULL,
                                   a_integer.array_size = 0,
                                   a_integer.number_size = 0
     };
@@ -336,15 +363,15 @@ int percent_d(s_flags *flags, s_length *length, int integer) {
 
     if(length->fieldwidth > 0 && length->precision > 0){
         
-        return_size = return_size + field_precision_integer(length, flags, &a_integer);
+        return_size = return_size + field_precision_integer(length, flags, &a_integer, '\0');
 
     }else if(length->precision > 0) {
     
-        return_size = return_size + precision_integer(length, &a_integer);
+        return_size = return_size + precision_integer(length, &a_integer, '\0');
 
     }else if(length->fieldwidth > 0){
 
-        return_size = return_size + field_integer(length, flags, &a_integer);
+        return_size = return_size + field_integer(length, flags, &a_integer, '\0');
 
     }else {
         return_size = return_size + print_integers(*a_integer.p_integer);
@@ -354,10 +381,10 @@ int percent_d(s_flags *flags, s_length *length, int integer) {
     return return_size;
 }
 
-//idk how to type field&precision for percent d soo this is the name i gave it.
-int field_precision_integer (s_length *length, s_flags *flags, s_vector_number *a_integer) {
+//idk how to type field&precision for percent d soo this is the name i gave it. i need to ajust all three of these functions to work with multi data types. also note cus of pointer data type limit i either need rewrite how parameters are pass or work around it.
+int field_precision_integer (s_length *length, s_flags *flags, s_vector_number *a_integer, char type) {
     int return_size = 0;
-    
+
     if(flags->negitive == true) {
         //i might make this a seperate function later for now ill keep it in here.
         for(length->precision; length->precision >= 0; length->precision--, length->fieldwidth--) {
@@ -366,20 +393,30 @@ int field_precision_integer (s_length *length, s_flags *flags, s_vector_number *
                 print_char('0');
                 return_size++;
             }else if(a_integer->array_size == 0){
-                return_size  = print_integers(*a_integer->p_integer) + return_size;
-                if_negative_make_zero(length, a_integer->number_size);
+                
+                if(type == 'u'){
+                    return_size  = print_integers(*a_integer->p_unsigned_integer) + return_size;
+                    if_negative_make_zero(length, a_integer->number_size);
+                }else{
+                    return_size  = print_integers(*a_integer->p_integer) + return_size;
+                    if_negative_make_zero(length, a_integer->number_size);
+                }
+
+                break;
+
             }else{
                 return_size = return_size + print_int_array(a_integer->p_integer, a_integer->array_size);
                 if_negative_make_zero(length , a_integer->array_size);
+                break;
             }
         }
 
-        for(length->fieldwidth; length->fieldwidth >= 0; length->fieldwidth--) {
+        for(length->fieldwidth; length->fieldwidth > 0; length->fieldwidth--) {
             print_char(' ');
             return_size++;
         }
     }else{
-
+        //printf("hello\n");
         for(length->fieldwidth; length->fieldwidth > length->precision && length->fieldwidth > a_integer->number_size && length->fieldwidth > a_integer->array_size; length->fieldwidth--){
             print_char(' ');
             return_size++;
@@ -391,11 +428,21 @@ int field_precision_integer (s_length *length, s_flags *flags, s_vector_number *
                 print_char('0');
                 return_size++;
             }else if(a_integer->array_size == 0){
-                return_size = print_integers(*a_integer->p_integer) + return_size;
-                if_negative_make_zero(length , a_integer->number_size);
+                
+                if(type == 'u'){
+                    return_size  = print_integers(*a_integer->p_unsigned_integer) + return_size;
+                    if_negative_make_zero(length, a_integer->number_size);
+                }else{
+                    return_size  = print_integers(*a_integer->p_integer) + return_size;
+                    if_negative_make_zero(length, a_integer->number_size);
+                }
+
+                break;
+                
             }else {
                 return_size = return_size + print_int_array(a_integer->p_integer, a_integer->array_size);
                 if_negative_make_zero(length , a_integer->array_size);
+                break;
             }
         }
     }
@@ -403,7 +450,7 @@ int field_precision_integer (s_length *length, s_flags *flags, s_vector_number *
     return return_size;
 }
 
-int precision_integer(s_length *length, s_vector_number *a_integer) {
+int precision_integer(s_length *length, s_vector_number *a_integer, char type) {
     int return_size = 0;
     
     for(length->precision;length->precision > a_integer->number_size && length->fieldwidth > a_integer->array_size; length->precision--) {
@@ -412,7 +459,11 @@ int precision_integer(s_length *length, s_vector_number *a_integer) {
     }
     if(a_integer->array_size == 0){
     
-        return_size = return_size + print_integers(*a_integer->p_integer);
+        if(type == 'u') {
+            return_size = return_size + print_integers(*a_integer->p_unsigned_integer);
+        }else{
+            return_size = return_size + print_integers(*a_integer->p_integer);
+        }
 
     }else{
         return_size = return_size + print_int_array(a_integer->p_integer, a_integer->array_size);
@@ -421,13 +472,17 @@ int precision_integer(s_length *length, s_vector_number *a_integer) {
     return return_size;
 }
 
-int field_integer(s_length *length, s_flags *flags, s_vector_number *a_integer) {
+int field_integer(s_length *length, s_flags *flags, s_vector_number *a_integer, char type) {
     int return_size = 0;
     
     if(flags->negitive == true) {//number size just find how many digits it takes to make the  number;
         if(a_integer->array_size == 0){
         
+        if(type == 'u') {
+            return_size = return_size + print_integers(*a_integer->p_unsigned_integer);
+        }else{
             return_size = return_size + print_integers(*a_integer->p_integer);
+        }
         
         }else{
             return_size = return_size + print_int_array(a_integer->p_integer, a_integer->array_size);
@@ -467,12 +522,12 @@ int field_integer(s_length *length, s_flags *flags, s_vector_number *a_integer) 
 
     return return_size;
 }
-
+//note when using pointers data type has to be exact or it returns error.
 int percent_0_u(char type, s_flags *flags, s_length *length, unsigned int integer){
     int return_size = 0;
     //int power_ten = 1;
-    int test = (int)integer;
-    s_vector_number a_integer  = {a_integer.p_integer = &test,
+    s_vector_number a_integer  = {a_integer.p_integer = NULL,
+                                  a_integer.p_unsigned_integer = NULL,
                                   a_integer.array_size = 0,
                                   a_integer.number_size = 0
     };
@@ -484,9 +539,10 @@ int percent_0_u(char type, s_flags *flags, s_length *length, unsigned int intege
     }
 
     if(type == 'o') {
-        precent_o(&a_integer, flags);
+       precent_o(integer, &a_integer, flags);
     }else if(type == 'u'){
         unsigned int temp = integer;
+        a_integer.p_unsigned_integer = &integer;
         for(a_integer.number_size = 0; temp > 0; a_integer.number_size++){
             temp = temp / 10;
         }
@@ -495,21 +551,21 @@ int percent_0_u(char type, s_flags *flags, s_length *length, unsigned int intege
     //printf("%d %d\n", *a_integer.p_integer, a_integer.number_size);
     if(length->fieldwidth > 0 && length->precision > 0){
         
-        return_size = return_size + field_precision_integer(length, flags, &a_integer);
+        return_size = return_size + field_precision_integer(length, flags, &a_integer, type);
 
     }else if(length->precision > 0) {
     
-        return_size = return_size + precision_integer(length, &a_integer);
+        return_size = return_size + precision_integer(length, &a_integer, type);
 
     }else if(length->fieldwidth > 0){
 
-        return_size = return_size + field_integer(length, flags, &a_integer);
+        return_size = return_size + field_integer(length, flags, &a_integer, type);
 
     }else {
         if(type == 'o') {
             return_size = return_size + print_int_array(a_integer.p_integer, a_integer.array_size);
         }else if(type == 'u') {
-            return_size = return_size + print_integers(test);
+            return_size = return_size + print_integers(integer);
         }
     }
     if(type == 'o') {
@@ -518,9 +574,9 @@ int percent_0_u(char type, s_flags *flags, s_length *length, unsigned int intege
     return return_size;
 }
 
-void precent_o(s_vector_number *a_integer, s_flags *flags) {
+void precent_o(unsigned int integer, s_vector_number *a_integer, s_flags *flags) {
 
-    unsigned temp = *a_integer->p_integer;
+    unsigned temp = integer;
     //unsigned int converted_to_octal = 0;
     unsigned int octal = 8;
 
@@ -535,13 +591,14 @@ void precent_o(s_vector_number *a_integer, s_flags *flags) {
 
     int *array = malloc(sizeof(int) * a_integer->array_size);
 
-    for(int i = a_integer->array_size - 1; *a_integer->p_integer > 0; i--) {
+    for(int i = a_integer->array_size - 1; integer > 0; i--) {
         if(flags->hashtag == true) {
             array[0] = '0';
             flags->hashtag = false;
         }
-        array[i] = (*a_integer->p_integer % octal) + '0';
-        *a_integer->p_integer = *a_integer->p_integer / octal;
+        array[i] = (integer % octal) + '0';
+        //printf("number saved == %d", *a_integer->p_integer % 8);
+        integer = integer / octal;
         //74 - 8 give remainder 2;
         //temp = 9 % 8 = 1
         //74/8 = 9%8 = 1
@@ -561,6 +618,7 @@ int percent_x_X(char type, s_flags *flags, s_length *length, unsigned int intege
     int return_size = 0;
 
     s_vector_number a_integer  = {a_integer.p_integer = NULL,
+                                  a_integer.p_unsigned_integer = NULL,
                                   a_integer.array_size = 0,
                                   a_integer.number_size = 0
     };
@@ -609,15 +667,15 @@ int percent_x_X(char type, s_flags *flags, s_length *length, unsigned int intege
 
     if(length->fieldwidth > 0 && length->precision > 0){
         
-        return_size = return_size + field_precision_integer(length, flags, &a_integer);
+        return_size = return_size + field_precision_integer(length, flags, &a_integer, type);
 
     }else if(length->precision > 0) {
     
-        return_size = return_size + precision_integer(length, &a_integer);
+        return_size = return_size + precision_integer(length, &a_integer, type);
 
     }else if(length->fieldwidth > 0){
 
-        return_size = return_size + field_integer(length, flags, &a_integer);
+        return_size = return_size + field_integer(length, flags, &a_integer, type);
 
     }else {
         return_size = return_size + print_int_array(a_integer.p_integer, a_integer.array_size);
@@ -626,7 +684,7 @@ int percent_x_X(char type, s_flags *flags, s_length *length, unsigned int intege
     // printf("return number == %d\n", return_size);
 
     free(hex_print);
-    return 0;
+    return return_size;
 }
 
 //same with this one it works for now. doesnt support multi langs tho. im prob going end up having to rewrite everything.
@@ -687,6 +745,109 @@ int percent_p(void *pointer) {
     return return_size;
 }
 
+int permament_rounding(double a_float, int last_digit, char check_percent) {
+    int return_number = 0;
+    int temp_number = -1;
+    int temp_number2 = -2;
+    double temp_float = 0.0;
+    bool do_we_round = false;
+
+    for(int i = 0; i <= last_digit; i++) {
+        temp_number = (int)a_float;
+
+        if(temp_number == 9) {
+            do_we_round = true;
+            temp_float = a_float;
+            for(int j = i; j <= last_digit; j++) {
+                temp_float = temp_float * 10;
+                
+                if((int)temp_float % 10 != 9) {
+                    do_we_round = false;
+                }
+            }
+            if(do_we_round){
+
+                if(check_percent == 'f') {
+                    return i - 2;
+                }else{
+                    return i - 1;
+                }
+
+            }
+        }
+        a_float = a_float - temp_number;
+        a_float = a_float * 10;
+    }
+
+    return -1;
+}
+
+int print_float(double a_float, char check_percent, int precision, int place_decimal, int last_digit) {
+    
+    int this_number = 0;
+    int return_size = 0;
+    int do_we_round = -1;
+
+    if (check_percent == 'e'){
+        a_float = a_float /10;
+        do_we_round = permament_rounding(a_float, last_digit, check_percent);
+    }else{
+        do_we_round = permament_rounding(a_float, last_digit, check_percent);
+    }
+    //printf("number do_we_round has == %d\n", do_we_round);
+    
+    //printf("last digit equals == %d\n", last_digit);
+    //printf("%f\n", a_float);
+    
+        for(int i = 0; i <= last_digit; i++) {
+        if(i == place_decimal) {
+            if(i == 0) {
+                print_char('0');
+                print_char('.');
+                return_size = return_size + 2;
+            }else{
+                print_char('.');
+                return_size++;
+            }
+
+        }
+        //sooo i tried a few ways to grab the numbers from float but all gave me same problems soo this way most simple way to do it.
+        //also i have no idea how to grab anything pass decimal without using precision. to do it.
+        a_float = a_float * 10;
+        if(i == do_we_round) {
+            a_float = round(a_float);
+        }
+        this_number = (int)a_float;
+
+        if(i >= place_decimal && (check_percent == 'g' || check_percent == 'G')) {
+            //printf("%f %d %d %d\n", a_float, last_digit, this_number, j);
+            //printf("true == 1 false == 0 === %d\n", checking_all_zeros(a_float, last_digit, this_number, j));
+            if(checking_all_zeros(a_float, last_digit, this_number, i)) {
+                break;
+            }
+        }
+        
+        if(round(a_float) - .0001 > a_float) {//this works but it doesnt cover anything less thing .01 which can be a issue i could do it as low as .001 but still the issue would be there i feel like .001 would be fine for now tho.
+            if(i == last_digit) {
+                this_number = finding_number_double(round(a_float));
+            }
+            print_char((this_number + 48));
+            //printf("hi\n");
+            a_float = a_float - this_number;
+
+        }else{
+            this_number = finding_number_double(round(a_float));
+            print_char((this_number + 48));
+            //printf("bye\n");
+            a_float = a_float - this_number;
+
+        }
+        return_size++;
+    }
+    
+    return return_size;
+}
+
 //another thing that needs to be done is i neeed to make this combatible with percent_g which requires deletion of all trailing 0's soo far my idea is that i use a for loop to see if reminding numbers are zero if so skip printing everything. maybe i use break command or something to break out the for loop. i could also use a while loop with condition of while bool is_number_done -- true and j <= last_digit do a thing if is_number_done still equals true break. this would need to be into a if with condition char c == g or G do a thing.
 int percent_f(char check_percent, s_length *length, s_flags *flags, double a_float) {
     int return_size = 0;
@@ -694,8 +855,8 @@ int percent_f(char check_percent, s_length *length, s_flags *flags, double a_flo
     int precision = 6;
     int last_digit = 0;
     int this_number = 10;
-    int is_it_zero = 0;
-    bool fuck_me = false;// this was a check to see if i need to round the number in case of compilier error not being used atm.
+    int do_we_round = -1;
+    //bool fuck_me = false;// this was a check to see if i need to round the number in case of compilier error not being used atm.
 
     //printf("flags blank == %d\n", flags->blank);
     if(length->precision > 0 || flags->blank == true){
@@ -710,56 +871,32 @@ int percent_f(char check_percent, s_length *length, s_flags *flags, double a_flo
     //printf("%f\n", a_float);
     if(a_float == 1.0){
         print_char('1');
-        print_char('.');
-        for(int i = 0; i < 6; i++){
+        // i may need to remove the .0 for g.
+        if(check_percent == 'g' || check_percent == 'G') {
+            print_char('.');
             print_char('0');
+            return 3;
+        }else{
+            print_char('.');
+
+            for(int i = 0; i < 6; i++){
+                print_char('0');
+            }
+            return 8;
         }
-        return 8;
+
     }
     for(place_decimal = 0; a_float > 1; place_decimal++) {
         a_float = a_float / 10;
     }
-    last_digit = precision + place_decimal - 1;
-    //printf("last digit equals == %d\n", last_digit);
-    //printf("%f\n", a_float);
-    for(int j = 0; j <= last_digit; j++) {
-        if(j == place_decimal) {
-            if(j == 0) {
-                print_char('0');
-                print_char('.');
-                return_size++;
-            }else{
-                print_char('.');
-                return_size++;
-            }
 
-        }
-        //sooo i tried a few ways to grab the numbers from float but all gave me same problems soo this way most simple way to do it.
-        //also i have no idea how to grab anything pass decimal without using precision. to do it.
-        a_float = a_float * 10;
-        this_number = (int)a_float;
-
-        if(round(a_float) - .01 > a_float) {//this works but it doesnt cover anything less thing .01 which can be a issue i could do it as low as .001 but still the issue would be there i feel like .001 would be fine for now tho.
-            
-            if(j == last_digit) {
-                this_number = finding_number_double(round(a_float));
-            }
-
-            if(j >= place_decimal && (check_percent == 'g' || check_percent == 'G')) {
-                for(int k = j; (this_number == 0 && k <= last_digit); k++) {
-                    
-                }
-            }
-
-            print_char((this_number + 48));
-            a_float = a_float - this_number;  
-        }else{
-            this_number = finding_number_double(round(a_float));
-            print_char((this_number + 48));
-            a_float = a_float - this_number;
-        }
-        return_size++;
+    if(check_percent == 'g' || check_percent == 'G') {
+        last_digit = precision - 1;
+    }else{
+        last_digit = precision + place_decimal - 1;
     }
+
+    return_size = return_size + print_float(a_float, check_percent, precision, place_decimal, last_digit);
     
     return return_size;
 }
@@ -769,83 +906,70 @@ int percent_e(char check_percent, s_length *length, s_flags *flags, double a_flo
     int precision = 6;
     int expondent_value = 0;
     int this_number = 10;
+    int last_digit = 0;
+    int do_we_round = -1;
 
-    //printf("testing\n");
+    //printf("testing %f\n", a_float);
     if(length->precision > 0 || flags->blank == true){
         precision = length->precision;
     }
-
-    for(expondent_value = 0; a_float < 1; expondent_value--){
-        a_float = a_float * 10;
-    }
-    for(expondent_value = 0; a_float > 10; expondent_value++){
-        a_float = a_float / 10;
-    }
+    //this checks for negative and turns it positive.
     if(a_float < 0) {
         a_float = a_float * -1;
         print_char('-');
         return_size++;
     }
-    //printf("expondent vaulue == %d\n", expondent_value);
-
-    int last_digit = precision;
-    for(int i = 0; i <= precision; i++) {
-        if(i == 1) {
-            print_char('.');
-            return_size++;
+    //this is for expondent_value at the end if its less then 1 it multi it by 10 until its between 1 and 9.
+    //if its greater then 1 and 9 it divides the number by 10 until it hits a number between 1 and 9.
+    
+    if(a_float < 1){
+        for(expondent_value = 0; a_float < 1; expondent_value--){
+            a_float = a_float * 10;
+            //printf("test");
         }
-        //printf("hi");
-        //print_integers((int)a_float);
-        a_float = a_float * 10;
-        this_number = (int)a_float;
-
-        if(round(a_float) - .01 > a_float) {
-            if(i == last_digit) {
-                this_number = finding_number_double(round(a_float));
-            }
-            print_char((this_number + 48));
-            a_float = a_float - this_number;
-        }else{
-            this_number = finding_number_double(round(a_float));
-            print_char((this_number + 48));
-            a_float = a_float - this_number;
+    }else{
+        for(expondent_value = 0; a_float > 10; expondent_value++){
+            a_float = a_float / 10;
         }
-        return_size++;
     }
+
+
+    if(check_percent == 'g') {
+        last_digit = precision - 1;
+    }else{
+        last_digit = precision;
+    }
+   
+    //printf("expondent vaulue == %d\n", expondent_value);
+    return_size = return_size + print_float( a_float, check_percent, precision, 1, last_digit);
+
     //all these if statements are used for expondent print out e.g == (number)+e00 or (number)+E00.
     //i want kind of want put this into its own function to seperate them for better readability.
-    if(check_percent == 'E'){
+    //printf("and i get == %d\n", expondent_value);
+    if(expondent_value > 0) {
+        print_char('+');
+    }else{
+        print_char('-');
+        expondent_value = expondent_value * -1;
+    }
+    
+    if(check_percent == 'E' || check_percent == 'G'){
         if(expondent_value < 10 && expondent_value > -10) {
             return_size += print_char('E');
-            if(expondent_value > 0) {
-                print_char('+');
-            }else{
-                print_char('-');
-            }
             return_size += print_char('0');
             return_size += print_char(expondent_value + '0');
+            
         }else{
             return_size += print_char('E');
-            if(expondent_value > 0) {
-                return_size += print_char('+');
-            }
             return_size += print_integers(expondent_value);
         }
     }else{
         if(expondent_value < 10 && expondent_value > -10) {
             return_size += print_char('e');
-            if(expondent_value > 0) {
-                return_size += print_char('+');
-            }else{
-                return_size += print_char('-');
-            }
             return_size += print_char('0');
             return_size += print_char(expondent_value + '0');
         }else{
             return_size += print_char('e');
-            if(expondent_value > 0) {
-                return_size += print_char('+');
-            }
             return_size += print_integers(expondent_value);
         }
     }
@@ -855,11 +979,36 @@ int percent_e(char check_percent, s_length *length, s_flags *flags, double a_flo
 
 int percent_g(char check_percent, s_length *length, s_flags *flags, double a_float){
     int return_size = 0;
+    int check_size = 1;
+    //printf("%d\n", length->precision );
 
+    if(flags->blank == true) {
+        length->precision = 1;
+    }else if(length->precision == 0) {
+        length->precision = 6;
+    }
+
+    for(int i = 0; i < length->precision; i++) {
+        check_size = check_size * 10;
+    }
+    //printf("check size == %d float == %f length is == %d\n", check_size, a_float, length->precision);
+
+    if(check_size > a_float) {
+       return_size = percent_f(check_percent, length, flags, a_float);
+    }else{
+        //printf("in == e");
+        return_size = percent_e(check_percent, length, flags, a_float);
+    }    
+    
 
     return return_size;
 }
 
+
+
+/*
+things to keep in mind when im rounding one it doesnt need be in the loop its one time check to see if i need to round the number at all conditions for rounding condition one the number one after last printed number needs to be above or at 6 if this isnt case we exit the function and keep moving on 2. we need save spot where we round this will never be a negative number so for defualt the number to check needs to be zero or higher and three while we looping we need round at the exact place soo
+*/
 // double rounding(double number) {
 //     int i = 0;
 //     int j = 0;
@@ -885,14 +1034,150 @@ int percent_g(char check_percent, s_length *length, s_flags *flags, double a_flo
 //     return number;
 // }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////back up code for later
+//     do_we_round = permament_rounding(a_float, last_digit, 'e');
+
+//     for(int i = 0; i <= last_digit; i++) {
+        
+//         if(do_we_round == i) {
+//             a_float = round(a_float);
+//         }
+
+//         //i moved it above so that way checking all zeros works normally
+//         this_number = (int)a_float;
+//         //this just makes sure we dont have any trailing zeros at end of our output for g.
+//         if(i >= 0 && (check_percent == 'g' || check_percent == 'G')) {
+
+//             if(checking_all_zeros(a_float, last_digit, this_number, i)) {
+//                 break;
+//             }
+//         }
+//         if(i == 1) {
+//             print_char('.');
+//             return_size++;
+//         }
+// //this shit right here used to print out the float and check to see if compilier got any rounding errors its not perfect but it works.
+// /////////////////////////////////////////
+
+//         if(round(a_float) - .0001 > a_float) {
+//             if(i == last_digit - 1) {
+//                 this_number = finding_number_double(round(a_float));
+//             }
+//             print_char((this_number + 48));
+//             a_float = a_float - this_number;
+//         }else{
+//             this_number = finding_number_double(round(a_float));
+//             print_char((this_number + 48));
+//             a_float = a_float - this_number;
+//         }
+//         a_float = a_float * 10;
+//         return_size++;
+// ////////////////////////////////////////
+//     }
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    // do_we_round = permament_rounding(a_float, last_digit, 'f');
+    // //printf("number do_we_round has == %d\n", do_we_round);
+    
+    // //printf("last digit equals == %d\n", last_digit);
+    // //printf("%f\n", a_float);
+    // for(int i = 0; i <= last_digit; i++) {
+    //     if(i == place_decimal) {
+    //         if(i == 0) {
+    //             print_char('0');
+    //             print_char('.');
+    //             return_size = return_size + 2;
+    //         }else{
+    //             print_char('.');
+    //             return_size++;
+    //         }
+
+    //     }
+    //     //sooo i tried a few ways to grab the numbers from float but all gave me same problems soo this way most simple way to do it.
+    //     //also i have no idea how to grab anything pass decimal without using precision. to do it.
+    //     a_float = a_float * 10;
+    //     if(i == do_we_round) {
+    //         a_float = round(a_float);
+    //     }
+    //     this_number = (int)a_float;
+
+    //     if(i >= place_decimal && (check_percent == 'g' || check_percent == 'G')) {
+    //         //printf("%f %d %d %d\n", a_float, last_digit, this_number, j);
+    //         //printf("true == 1 false == 0 === %d\n", checking_all_zeros(a_float, last_digit, this_number, j));
+    //         if(checking_all_zeros(a_float, last_digit, this_number, i)) {
+    //             break;
+    //         }
+    //     }
+        
+    //     if(round(a_float) - .0001 > a_float) {//this works but it doesnt cover anything less thing .01 which can be a issue i could do it as low as .001 but still the issue would be there i feel like .001 would be fine for now tho.
+    //         if(i == last_digit) {
+    //             this_number = finding_number_double(round(a_float));
+    //         }
+    //         print_char((this_number + 48));
+    //         //printf("hi\n");
+    //         a_float = a_float - this_number;
+
+    //     }else{
+    //         this_number = finding_number_double(round(a_float));
+    //         print_char((this_number + 48));
+    //         //printf("bye\n");
+    //         a_float = a_float - this_number;
+
+    //     }
+    //     return_size++;
+    // }
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        // this if statement used if we got condition where perision == 1 it removes the float part of the whole thing i might instead just pass it as a integer or remove it all together and try making it better.
+        // if(last_digit == 1) {
+        // print_char(round(a_float + 48));
+        // return_size++;
+        // break;
+        // }
 
 
 
+/*
+    for(int i = 0; i <= last_digit; i++) {
+        if(i == place_decimal) {
+            if(i == 0) {
+                print_char('0');
+                print_char('.');
+                return_size = return_size + 2;
+            }else{
+                print_char('.');
+                return_size++;
+            }
+        }
+        a_float = a_float * 10;
+        if(i == do_we_round) {
+            a_float = round(a_float);
+        }
+        this_number = (int)a_float;
 
+        if(i >= place_decimal && (check_percent == 'g' || check_percent == 'G')) {
 
+            if(checking_all_zeros(a_float, last_digit, this_number, i)) {
+                break;
+            }
+        }
+        
+        if(round(a_float) - .0001 > a_float) {//this works but it doesnt cover anything less thing .0001 which can be a issue i could do it as low as .001 but still the issue would be there i feel like .001 would be fine for now tho.
+            if(i == last_digit) {
+                this_number = finding_number_double(round(a_float));
+            }
+            print_char((this_number + 48));
+            //printf("hi\n");
+            a_float = a_float - this_number;
 
+        }else{
+            this_number = finding_number_double(round(a_float));
+            print_char((this_number + 48));
+            //printf("bye\n");
+            a_float = a_float - this_number;
 
-
+        }
+        return_size++;
+    }
+    */
 
 
 
